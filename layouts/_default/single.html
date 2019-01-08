@@ -1,0 +1,112 @@
+{{ define "content" -}}
+{{ $cdn_url := .Scratch.Get "cdn_url" }}
+<article class="post-warp" itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">{{ .Title }}</h1>
+        <div class="post-meta">
+                Written by <a itemprop="name" href="{{.Site.BaseURL }}" rel="author">{{ if isset .Params "author" }}{{ .Params.author }}{{ else }}{{ .Site.Params.author }}{{ end }}</a> 
+                <span class="post-time">
+                on <time datetime={{.Date.Format (.Site.Params.dateFormatToUse | default "2006-01-02") }} itemprop="datePublished">{{ .Date.Format (.Site.Params.dateFormatToUse | default "January 2, 2006") }}</time>
+                </span>
+                {{ with .Params.categories -}}
+                in
+                <i class="iconfont icon-folder"></i>
+                <span class="post-category">
+                        {{ range . }}
+                        {{- $name := . -}}
+                        {{- with $.Site.GetPage "taxonomy" (printf "categories/%s" $name) | default ($.Site.GetPage "taxonomy" (printf "categories/%s" ($name | urlize))) -}}
+                          <a href="{{ .Permalink }}"> {{ $name }} </a>
+                        {{ end -}}
+                        {{ end }}
+                </span>
+                {{- end }}
+        </div>
+    </header>
+    <div class="post-content">
+        <!--featured_image-->
+
+        {{ $images := findRE "<img src=\"[^\"|\\\"]*\"" .Content -}}
+        {{ if ge (len $images) 1}}
+            {{ $.Scratch.Set "postHasImages" true }}
+        {{ end }}
+
+        {{ with .Params.featured_image }}
+          {{- $img := . -}}
+          <img src="{{ printf "%s%s" $cdn_url $img }}" class="featured_image">
+        {{ end }}
+        <!-- end featured_image-->
+     
+          {{ $reAltIn := "<img src=\"([^\"]+)\" alt=\"([^\"]+)?\" />" }}
+          {{ $reAltOut :=  ( printf "<figure><img src=\"/images/ring.svg\" data-sizes=\"auto\" data-src=\"%s$1\" alt=\"$2\" class=\"lazyload\"><figcaption class=\"image-caption\">$2</figcaption></figure>" $cdn_url ) }}
+          {{ $altContent := .Content | replaceRE $reAltIn $reAltOut | safeHTML }}
+
+          {{ $reAltTitleIn := "<img src=\"([^\"]+)\" alt=\"([^\"]+)?\" title=\"([^\"]+)?\" />" }}
+          {{ $reAltTitleOut := ( printf "<figure><img src=\"/images/ring.svg\" data-src=\"%s$1\" data-sizes=\"auto\" alt=\"$2\" title=\"$3\" class=\"lazyload\"><figcaption class=\"image-caption\">$2</figcaption></figure>" $cdn_url ) }}
+          {{ $finalContent := $altContent | replaceRE $reAltTitleIn $reAltTitleOut | safeHTML }}
+
+          {{ $finalContent }}
+    </div>
+
+    <div class="post-tags">
+        {{ with .Params.tags }}
+            <section>
+            <i class="iconfont icon-tag"></i>Tag(s): 
+            {{ range . }}
+            <span class="tag"><a href="{{ "tags/" | absURL }}{{ . | urlize }}/">
+                    #{{.}}</a></span>
+            {{ end }}
+            </section>
+        {{ end }}
+    </div>
+
+
+    <div class="post-copyright">
+
+            {{ with .Site.Params.author }} 
+              <aside class="post-author">
+                <figure class="post-author-avatar avatar">
+                    <img src="{{ with $.Site.Author.avatar}} {{.}}{{end}}" alt="{{ with $.Site.Author.name}} {{.}}{{end}}">
+                </figure>
+                <div class="post-author-bio">
+                  <h4 class="post-author-name"><a href="/">{{ with $.Site.Author.name}} {{.}}{{end}}</a></h4>
+                    <p class="post-author-about">{{ with $.Site.Author.about}} {{.}}{{end}}</p>
+                    <div class="post-social">
+                      <span class="post-author-website"><i class="ic ic-link"> <a href="{{ with $.Site.BaseURL}} {{.}}{{end}}">Website</a></i></span>
+                      <span class="post-author-weibo"><i class="ic ic-weibo"> <a href="{{ with $.Site.Params.Social.Weibo }} {{.}}{{end}}">Weibo</a></i></span>
+                      <span class="post-author-twitter"><i class="ic ic-twitter"> <a target="_blank" href="{{ with $.Site.Params.Social.Twitter }} {{.}}{{end}}">Twitter</a></i></span>
+                      <span class="post-author-github"><i class="ic ic-github"> <a target="_blank" href="{{ with $.Site.Params.Social.Github }} {{.}}{{end}}">Github</a></i></span>
+                    </div>
+                </div>
+                <div class="clear"></div>
+                <div class="post-author-title"><i class="icon icon-edit icon-rspace"></i>Author</div>
+                <div class="post-author-qr qr">
+                    <img src="{{ with $.Site.Params.weixin_qrcode}} /{{.}}{{end}}" alt="{{ with $.Site.Author.name}} {{.}}{{end}}">
+                </div>
+              </aside>
+            {{ end }}
+
+            {{ with .Site.Params.license }} 
+            <p class="copyright-item lincese">
+                {{ . | safeHTML}}
+            </p>
+            {{ end }}
+    </div>
+
+    <div class="post-nav">
+        {{ if .PrevInSection }}
+        <a href="{{.PrevInSection.Permalink}}" class="prev" rel="prev" title="{{ .PrevInSection.Title}}"><i class="iconfont icon-left"></i>&nbsp;{{ .PrevInSection.Title}}</a>
+        {{ end }} 
+        {{ if .NextInSection }}
+        <a href="{{.NextInSection.Permalink}}" class="next" rel="next" title="{{.NextInSection.Title}}">{{.NextInSection.Title}}&nbsp;<i class="iconfont icon-right"></i></a>
+        {{ end }}
+    </div>
+
+    <div class="post-comment">
+          {{ if ( .Params.showComments | default true ) }}
+                 {{ if ne .Site.DisqusShortname "" }}
+                     {{ template "_internal/disqus.html" . }}
+                 {{ end }}
+          {{ end }}
+    </div>
+</article>
+{{- end }}
